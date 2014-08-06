@@ -1,0 +1,61 @@
+#! /bin/sh
+#
+# fastnetmon  Monitor traffic
+#
+# chkconfig: - 90 10
+# description: fastnetmon process
+# processname: fastnetmon
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+RETVAL=0
+PROCNAME=fastnetmon
+
+# See how we were called.
+case "$1" in
+  start)
+        echo -n "Starting fastnetmon: "
+        if [ `/usr/bin/screen -list|/bin/grep fastnetmon|/bin/grep Detached|/usr/bin/wc -l` == 0 ]; then
+                /usr/bin/screen -wipe > /dev/null
+                /usr/bin/screen -S fastnetmon -d -m
+        fi
+        /usr/bin/screen -p 0 -S fastnetmon -X stuff "/usr/local/bin/fastnetmon$(printf \\r)"
+        RETVAL=$?
+        if [ $RETVAL -eq 0 ]
+        then
+                echo_success
+                touch /var/lock/subsys/fastnetmon
+        else
+                echo_failure
+        fi
+        echo
+        ;;
+  stop)
+        echo -n "Stopping fastnetmon: "
+        killproc fastnetmon
+        RETVAL=$?
+        if [ $RETVAL -eq 0 ]
+        then
+                echo_success
+                rm -f /var/lock/subsys/fastnetmon
+        else
+                echo_failure
+        fi
+        echo
+        ;;
+  status)
+        status $PROCNAME
+        RETVAL=$?
+        ;;
+  restart|reload)
+        $0 stop
+        $0 start
+        RETVAL=$?
+        ;;
+  *)
+        echo "Usage: fastnetmon {start|stop|status|restart}"
+        exit 1
+esac
+
+exit $RETVAL
